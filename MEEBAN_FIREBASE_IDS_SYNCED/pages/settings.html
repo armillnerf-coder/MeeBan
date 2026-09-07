@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ตั้งค่า</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#1e3a5f",
+                        secondary: "#4a90d9",
+                        accent: "#f59e0b"
+                    },
+                    fontFamily: {
+                        sans: ["Sarabun", "sans-serif"]
+                    }
+                }
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body class="min-h-screen bg-gray-100 font-sans text-gray-800">
+    <div class="app-shell">
+        
+<aside id="sidebar" class="fixed lg:static inset-y-0 left-0 z-40 w-64 bg-primary text-white flex flex-col transform -translate-x-full lg:translate-x-0 transition-transform duration-300 sidebar-closed">
+    <div class="p-4 border-b border-white/10">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                <i data-lucide="building-2" class="w-5 h-5"></i>
+            </div>
+            <div>
+                <h2 data-dorm-name class="font-bold text-sm">หอพักของฉัน</h2>
+                <p class="text-xs text-white/60">Admin</p>
+            </div>
+        </div>
+    </div>
+
+    <nav class="flex-1 p-3 space-y-1 overflow-auto">
+        <button class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/10 transition text-left" data-page="dashboard" onclick="goTo('dashboard')">
+            <i data-lucide="layout-dashboard"></i><span>แดชบอร์ด</span>
+        </button>
+        <button class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/10 transition text-left" data-page="rooms" onclick="goTo('rooms')">
+            <i data-lucide="door-open"></i><span>จัดการห้องพัก</span>
+        </button>
+        <button class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/10 transition text-left" data-page="tenants" onclick="goTo('tenants')">
+            <i data-lucide="users"></i><span>จัดการผู้เช่า</span>
+        </button>
+        <button class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/10 transition text-left" data-page="bills" onclick="goTo('bills')">
+            <i data-lucide="file-text"></i><span>บิลค่าเช่า</span>
+        </button>
+        <button class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/10 transition text-left" data-page="payments" onclick="goTo('payments')">
+            <i data-lucide="credit-card"></i><span>การชำระเงิน</span>
+        </button>
+        <button class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/10 transition text-left" data-page="reports" onclick="goTo('reports')">
+            <i data-lucide="bar-chart-3"></i><span>รายงาน</span>
+        </button>
+        <button class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/10 transition text-left" data-page="settings" onclick="goTo('settings')">
+            <i data-lucide="settings"></i><span>ตั้งค่า</span>
+        </button>
+    </nav>
+
+    <div class="p-3 border-t border-white/10">
+        <button onclick="logout()" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-red-500/20 transition text-red-300">
+            <i data-lucide="log-out"></i><span>ออกจากระบบ</span>
+        </button>
+    </div>
+</aside>
+<div id="sidebarOverlay" class="fixed inset-0 bg-black/50 z-30 hidden lg:hidden" onclick="toggleSidebar()"></div>
+
+        <main class="flex-1 flex flex-col min-w-0 overflow-hidden">
+            <header class="bg-white shadow-sm px-4 py-3 flex items-center gap-3 no-print z-20">
+                <button onclick="toggleSidebar()" class="lg:hidden p-2 hover:bg-gray-100 rounded-lg">
+                    <i data-lucide="menu"></i>
+                </button>
+                <h1 id="pageTitle" data-base-title="ตั้งค่า" class="text-lg font-semibold text-primary flex-1">ตั้งค่า</h1>
+                <div id="currentDate" class="text-sm text-gray-500"></div>
+            </header>
+            <div class="flex-1 p-4 lg:p-6 overflow-auto">
+                
+<div class="space-y-6">
+    <div class="card max-w-2xl">
+        <h3 class="font-semibold mb-4">ข้อมูลหอพัก</h3>
+        <form id="dormInfoForm" class="space-y-3">
+            <div class="form-group">
+                <label for="settingDormName">ชื่อหอพัก</label>
+                <input type="text" id="settingDormName" required>
+            </div>
+            <div class="form-group">
+                <label for="settingDormAddress">ที่อยู่</label>
+                <textarea id="settingDormAddress" rows="3"></textarea>
+            </div>
+            <div class="form-group">
+                <label for="settingDormPhone">เบอร์โทรศัพท์</label>
+                <input type="text" id="settingDormPhone">
+            </div>
+            <button type="submit" class="btn btn-success">บันทึกข้อมูลหอพัก</button>
+        </form>
+        <div id="dormInfoMsg" class="mt-3 text-green-600 text-sm hidden">บันทึกเรียบร้อยแล้ว</div>
+    </div>
+
+    <div class="card max-w-3xl">
+        <h3 class="font-semibold mb-4">ค่าเข้าห้องตามห้อง</h3>
+        <div id="moveInFeesContainer" class="space-y-3"></div>
+        <button onclick="saveMoveInFees()" class="btn btn-secondary mt-4">บันทึกค่าเข้าห้อง</button>
+        <div id="moveInFeesMsg" class="mt-3 hidden text-sm text-green-600">บันทึกเรียบร้อยแล้ว</div>
+    </div>
+
+    <div class="card max-w-2xl">
+        <h3 class="font-semibold mb-4">ตั้งค่าระบบ</h3>
+        <form id="settingsForm" class="space-y-4">
+            <div class="form-group">
+                <label for="settingElectricRate">ค่าไฟต่อหน่วย (บาท)</label>
+                <input type="number" id="settingElectricRate" min="0">
+            </div>
+            <div class="form-group">
+                <label for="settingWaterRate">ค่าน้ำ (บาท/เดือน)</label>
+                <input type="number" id="settingWaterRate" min="0">
+            </div>
+            <div class="form-group">
+                <label for="settingGarbageRate">ค่าขยะ (บาท/เดือน)</label>
+                <input type="number" id="settingGarbageRate" min="0">
+            </div>
+            <div class="form-group">
+                <label for="settingDueDay">วันครบกำหนดชำระ</label>
+                <input type="number" id="settingDueDay" min="1" max="31">
+            </div>
+            <button type="submit" class="btn btn-primary">บันทึกการตั้งค่า</button>
+        </form>
+        <div id="settingsMsg" class="hidden mt-3 text-green-600 text-sm">บันทึกเรียบร้อยแล้ว</div>
+    </div>
+</div>
+
+            </div>
+        </main>
+    </div>
+    
+    <div id="loadingScreen" class="fixed inset-0 bg-white/80 backdrop-blur-sm hidden items-center justify-center z-[1000]">
+        <div class="text-center">
+            <div class="spinner mx-auto"></div>
+            <p class="mt-4">กำลังประมวลผล...</p>
+        </div>
+    </div>
+
+    <div id="toast" class="fixed bottom-6 right-6 hidden z-[1001]">
+        <div class="bg-primary text-white px-5 py-3 rounded-xl shadow-xl">
+            <span id="toastMessage"></span>
+        </div>
+    </div>
+
+    <div id="printArea" class="hidden"></div>
+
+    <script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore-compat.js"></script>
+    <script src="../js/firebase.js"></script>
+<script src="../js/main.js"></script>
+    <script src="../js/settings.js"></script>
+    <script>
+        if (window.lucide?.createIcons) lucide.createIcons();
+    </script>
+</body>
+</html>

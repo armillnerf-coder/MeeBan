@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบบริหารจัดการหอพัก</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#1e3a5f",
+                        secondary: "#4a90d9",
+                        accent: "#f59e0b"
+                    },
+                    fontFamily: {
+                        sans: ["Sarabun", "sans-serif"]
+                    }
+                }
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/login.css">
+</head>
+<body class="min-h-screen login-bg flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
+        <div class="text-center mb-8">
+            <div class="w-20 h-20 bg-primary rounded-full mx-auto flex items-center justify-center mb-4">
+                <i data-lucide="building-2" class="w-10 h-10 text-white"></i>
+            </div>
+            <h1 id="loginTitle" class="text-2xl font-bold text-primary">ระบบบริหารจัดการหอพัก</h1>
+            <p class="text-gray-500 mt-1">กรุณาเข้าสู่ระบบ</p>
+        </div>
+
+        <form id="loginForm" class="space-y-4">
+            <div>
+                <label for="loginUser" class="block text-sm font-medium text-gray-700 mb-1">ชื่อผู้ใช้</label>
+                <input type="text" id="loginUser" value="admin" autocomplete="username">
+            </div>
+            <div>
+                <label for="loginPass" class="block text-sm font-medium text-gray-700 mb-1">รหัสผ่าน</label>
+                <input type="password" id="loginPass" value="1234" autocomplete="current-password">
+            </div>
+            <button type="submit" class="w-full bg-primary text-white py-3 rounded-lg font-semibold hover:bg-opacity-90">
+                เข้าสู่ระบบ
+            </button>
+            <p class="text-xs text-center text-gray-400">Demo : admin / 1234</p>
+        </form>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore-compat.js"></script>
+    <script src="js/firebase.js"></script>
+<script src="js/main.js"></script>
+    <script src="js/login.js"></script>
+    <script>
+        if (window.lucide?.createIcons) lucide.createIcons();
+    </script>
+</body>
+</html>
