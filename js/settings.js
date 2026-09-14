@@ -7,6 +7,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     document.getElementById("dormInfoForm")?.addEventListener("submit", saveDormInfo);
     document.getElementById("settingsForm")?.addEventListener("submit", saveSettingsForm);
+    document.getElementById("settingDormLogo")?.addEventListener("change", previewDormLogo);
+    document.getElementById("removeDormLogo")?.addEventListener("click", markDormLogoForRemoval);
 
     window.firebaseReady?.then(() => {
         applyDormBrand();
@@ -19,6 +21,7 @@ function loadSettingsForm() {
     document.getElementById("settingDormName").value = dormInfo.name || "";
     document.getElementById("settingDormAddress").value = dormInfo.address || "";
     document.getElementById("settingDormPhone").value = dormInfo.phone || "";
+    setDormLogoPreview(dormInfo.logo || "");
 
     document.getElementById("settingElectricRate").value = settings.electric_rate;
     document.getElementById("settingWaterRate").value = settings.water_rate;
@@ -26,13 +29,30 @@ function loadSettingsForm() {
     document.getElementById("settingDueDay").value = settings.due_day;
 }
 
-function saveDormInfo(event) {
+async function saveDormInfo(event) {
     event.preventDefault();
+
+    const logoInput = document.getElementById("settingDormLogo");
+    let logo = dormInfo.logo || "";
+
+    if (logoInput?.dataset.removeLogo === "true") {
+        logo = "";
+    } else if (logoInput?.files?.[0]) {
+        try {
+            const dataUrl = await readDormLogo(logoInput.files[0]);
+            logo = await compressImageDataUrl(dataUrl, 180 * 1024);
+        } catch (error) {
+            console.error("[MEEBAN] Logo upload failed:", error);
+            showToast("ไม่สามารถอ่านไฟล์โลโก้ได้", "error");
+            return;
+        }
+    }
 
     dormInfo = {
         name: document.getElementById("settingDormName")?.value.trim() || "หอNK",
         address: document.getElementById("settingDormAddress")?.value.trim() || "",
-        phone: document.getElementById("settingDormPhone")?.value.trim() || ""
+        phone: document.getElementById("settingDormPhone")?.value.trim() || "",
+        logo
     };
 
     autoSave();
@@ -42,6 +62,51 @@ function saveDormInfo(event) {
     msg?.classList.remove("hidden");
     setTimeout(() => msg?.classList.add("hidden"), 2000);
     showToast("บันทึกข้อมูลหอพักเรียบร้อย");
+}
+
+function previewDormLogo(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+        showToast("กรุณาเลือกไฟล์รูปภาพ", "warning");
+        event.target.value = "";
+        return;
+    }
+
+    event.target.dataset.removeLogo = "false";
+    const reader = new FileReader();
+    reader.onload = () => setDormLogoPreview(reader.result);
+    reader.onerror = () => showToast("ไม่สามารถอ่านไฟล์โลโก้ได้", "error");
+    reader.readAsDataURL(file);
+}
+
+function markDormLogoForRemoval() {
+    const input = document.getElementById("settingDormLogo");
+    if (input) {
+        input.value = "";
+        input.dataset.removeLogo = "true";
+    }
+    setDormLogoPreview("");
+}
+
+function setDormLogoPreview(src) {
+    const preview = document.getElementById("dormLogoPreview");
+    const removeButton = document.getElementById("removeDormLogo");
+    if (!preview) return;
+
+    preview.src = src || "";
+    preview.classList.toggle("hidden", !src);
+    removeButton?.classList.toggle("hidden", !src);
+}
+
+function readDormLogo(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(file);
+    });
 }
 
 function saveSettingsForm(event) {
