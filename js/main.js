@@ -43,7 +43,8 @@ let payments = [];
 let dormInfo = {
     name: defaultConfig.dorm_name,
     address: defaultConfig.dorm_address,
-    phone: defaultConfig.dorm_phone
+    phone: defaultConfig.dorm_phone,
+    logo: ""
 };
 let moveInFees = {};
 let isLoggedIn = localStorage.getItem(STORAGE_KEYS.auth) === "true";
@@ -243,6 +244,26 @@ function getCurrentPageFromPath() {
 function applyDormBrand() {
     const titleNodes = document.querySelectorAll("[data-dorm-name]");
     titleNodes.forEach(node => node.textContent = dormInfo.name || defaultConfig.dorm_name);
+
+    const icon = document.querySelector("#sidebar [data-lucide='building-2']");
+    const logoBox = icon?.parentElement;
+    if (logoBox) {
+        let logo = logoBox.querySelector("img[data-dorm-logo]");
+        if (dormInfo.logo) {
+            if (!logo) {
+                logo = document.createElement("img");
+                logo.dataset.dormLogo = "true";
+                logo.className = "dorm-logo";
+                logoBox.appendChild(logo);
+            }
+            logo.src = dormInfo.logo;
+            logo.alt = `โลโก้ ${dormInfo.name || defaultConfig.dorm_name}`;
+            icon.style.display = "none";
+        } else {
+            logo?.remove();
+            icon.style.display = "";
+        }
+    }
 
     const pageTitle = document.getElementById("pageTitle");
     if (pageTitle && pageTitle.dataset.baseTitle) {
