@@ -605,3 +605,18 @@ tr:hover { background:#f9fafb; }
     }
 }
 
+@media (max-width: 1023px) {
+  #sidebar.sidebar-open {
+    transform: translateX(0) !important;
+  }
+
+  #sidebar.sidebar-closed {
+    transform: translateX(-100%) !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  #sidebar {
+    transform: none !important;
+  }
+}
