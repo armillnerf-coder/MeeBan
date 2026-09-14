@@ -462,6 +462,24 @@ tr:hover { background:#f9fafb; }
     .btn { width:100%; }
 }
 
+/* Mobile sidebar: these rules intentionally override Tailwind's
+   -translate-x-full utility after the menu button changes state. */
+@media (max-width: 1023px) {
+    #sidebar.sidebar-open {
+        transform: translateX(0) !important;
+    }
+
+    #sidebar.sidebar-closed {
+        transform: translateX(-100%) !important;
+    }
+}
+
+@media (min-width: 1024px) {
+    #sidebar {
+        transform: none !important;
+    }
+}
+
 /* Utilities retained from original */
 .grid-2 { display:grid; grid-template-columns:repeat(2,1fr); gap:16px; }
 .grid-3 { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
