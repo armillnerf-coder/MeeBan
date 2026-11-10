@@ -16,6 +16,15 @@ const STORAGE_KEYS = {
 const FIRESTORE_COLLECTIONS = ["rooms", "tenants", "bills", "payments"];
 const FIRESTORE_META_PATH = ["meta", "main"];
 
+// สถานะล่าสุดของแต่ละ collection ที่ "รู้ว่าอยู่บน Firestore" (id -> JSON)
+// ใช้เปรียบเทียบเพื่อเขียน/ลบเฉพาะเอกสารที่เปลี่ยนจริง ไม่ไปลบเอกสารที่เครื่องนี้ไม่เคยเห็น
+const firestoreSnapshot = {
+    rooms: new Map(),
+    tenants: new Map(),
+    bills: new Map(),
+    payments: new Map()
+};
+
 let settings = {
     electric_rate: 8,
     water_rate: 200,
@@ -47,7 +56,8 @@ let dormInfo = {
     logo: ""
 };
 let moveInFees = {};
-let isLoggedIn = localStorage.getItem(STORAGE_KEYS.auth) === "true";
+// สถานะล็อกอินจริงมาจาก Firebase Auth (ดู meeAuthGuard ด้านล่าง) ไม่เชื่อ localStorage
+let isLoggedIn = false;
 
 const firebaseState = {
     initialized: false,
@@ -300,17 +310,36 @@ function toggleSidebar() {
     if (overlay) overlay.classList.toggle("hidden");
 }
 
-function logout() {
-    localStorage.removeItem(STORAGE_KEYS.auth);
+function clearLocalData() {
+    // ล้างข้อมูลที่ cache ไว้ในเครื่อง (ผู้เช่า บิล ฯลฯ) ไม่ให้ค้างบนเครื่องที่ใช้ร่วมกัน
+    Object.values(STORAGE_KEYS).forEach(key => localStorage.removeItem(key));
+}
+
+async function logout() {
+    try {
+        // บันทึกงานที่ยังค้างอยู่ขึ้น Firestore ก่อนออกจากระบบ
+        if (firebaseState.saveQueued) await syncFirebaseNow();
+    } catch (error) {
+        console.error("[MEEBAN] Final sync before logout failed:", error);
+    }
+
+    clearTimeout(firebaseSaveTimer);
     isLoggedIn = false;
+
+    try {
+        await window.meeSignOut();
+    } catch (error) {
+        console.error("[MEEBAN] Sign-out failed:", error);
+    }
+
+    clearLocalData();
     location.href = "../index.html";
 }
 
 function requireLogin() {
-    if (!isLoggedIn) {
-        location.href = "../index.html";
-        return false;
-    }
+    // การตรวจสิทธิ์จริงทำใน meeAuthGuard: หน้าจะถูกซ่อนไว้ (CSS) จนกว่า Firebase Auth
+    // ยืนยันตัวตนสำเร็จ ถ้าไม่ได้ล็อกอินจะถูกส่งกลับหน้า login ที่นั่น
+    // ความปลอดภัยของข้อมูลจริงอยู่ที่ Firestore Rules ไม่ใช่ฟังก์ชันนี้
     return true;
 }
 
@@ -487,29 +516,37 @@ async function readFirestoreDoc(collectionName, docId = "main") {
     }
 }
 
+function recordFirestoreSnapshot(collectionName, items) {
+    firestoreSnapshot[collectionName] = new Map(
+        (items || [])
+            .filter(item => item && item.id)
+            .map(item => [String(item.id), JSON.stringify(serializeForFirestore(item))])
+    );
+}
+
 async function writeFirestoreCollection(collectionName, items) {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore ไม่พร้อมใช้งาน");
 
+    const previous = firestoreSnapshot[collectionName] || new Map();
     const desired = new Map(
         items
             .filter(item => item && item.id)
-            .map(item => [String(item.id), serializeForFirestore(item)])
+            .map(item => [String(item.id), JSON.stringify(serializeForFirestore(item))])
     );
 
-    const existingSnapshot = await db.collection(collectionName).get();
-    const existingIds = existingSnapshot.docs.map(doc => doc.id);
+    const operations = [];
 
-    let operations = [];
-
-    existingIds.forEach(id => {
-        if (!desired.has(id)) {
-            operations.push({ type: "delete", id });
-        }
+    // ลบเฉพาะเอกสารที่เครื่องนี้เคยเห็นบน Firestore แล้วถูกลบออกจากข้อมูลในเครื่อง
+    previous.forEach((_, id) => {
+        if (!desired.has(id)) operations.push({ type: "delete", id });
     });
 
-    desired.forEach((data, id) => {
-        operations.push({ type: "set", id, data });
+    // เขียนเฉพาะเอกสารใหม่หรือที่เปลี่ยนแปลง
+    desired.forEach((json, id) => {
+        if (previous.get(id) !== json) {
+            operations.push({ type: "set", id, data: JSON.parse(json) });
+        }
     });
 
     while (operations.length) {
@@ -527,6 +564,9 @@ async function writeFirestoreCollection(collectionName, items) {
 
         await batch.commit();
     }
+
+    // อัปเดต snapshot เมื่อเขียนสำเร็จทั้งหมดเท่านั้น (ถ้าพลาดครั้งหน้าจะลองใหม่)
+    firestoreSnapshot[collectionName] = desired;
 }
 
 async function writeFirestoreDoc(collectionName, docId, data) {
@@ -607,6 +647,12 @@ async function loadFirebaseData() {
         dormInfo: remoteDormInfo,
         moveInFees: remoteMoveInFees
     };
+
+    // จำสถานะเอกสารบน Firestore ไว้ก่อนมีการแก้ไขใด ๆ ในเครื่อง
+    recordFirestoreSnapshot("rooms", remoteRooms);
+    recordFirestoreSnapshot("tenants", remoteTenants);
+    recordFirestoreSnapshot("bills", remoteBills);
+    recordFirestoreSnapshot("payments", remotePayments);
 
     const hasInitializedRemote = meta?.initialized === true;
     const remoteHasData = Boolean(
@@ -721,8 +767,7 @@ function queueFirebaseSave() {
     }, 300);
 }
 
-// Deletes the exact Firestore document IDs that were removed locally. The
-// following full reconciliation also removes any stale/legacy documents.
+// Deletes the exact Firestore document IDs that were removed locally.
 async function deleteFirebaseRecords(collectionName, ids) {
     const db = getFirebaseDb();
     const uniqueIds = [...new Set((Array.isArray(ids) ? ids : [ids]).filter(Boolean).map(String))];
@@ -732,6 +777,7 @@ async function deleteFirebaseRecords(collectionName, ids) {
         const batch = db.batch();
         uniqueIds.forEach(id => batch.delete(db.collection(collectionName).doc(id)));
         await batch.commit();
+        uniqueIds.forEach(id => firestoreSnapshot[collectionName]?.delete(id));
         console.info(`[MEEBAN] Deleted Firestore ${collectionName}:`, uniqueIds);
     } catch (error) {
         firebaseState.error = error;
@@ -745,6 +791,13 @@ function startFirebase() {
     if (firebaseInitPromise) return firebaseInitPromise;
 
     firebaseInitPromise = (async () => {
+        // ต้องล็อกอินก่อนจึงจะอ่าน/เขียน Firestore ได้ (Rules บังคับอยู่)
+        const user = await (window.meeAuthGuard || Promise.resolve(null));
+        if (!user) {
+            firebaseState.error = new Error("ยังไม่ได้เข้าสู่ระบบ");
+            return { ok: false, error: firebaseState.error };
+        }
+
         firebaseState.initialized = Boolean(getFirebaseDb());
 
         if (!firebaseState.initialized) {
@@ -783,6 +836,34 @@ function startFirebase() {
 
     return firebaseInitPromise;
 }
+
+/* =========================================================
+   Auth guard (Firebase Authentication)
+   ========================================================= */
+const IS_LOGIN_PAGE = getCurrentPageFromPath() === "index";
+
+window.meeAuthGuard = (window.meeAuthReady || Promise.resolve(null)).then(user => {
+    if (user) {
+        isLoggedIn = true;
+        // เปิดให้เห็นหน้า (หน้าในโฟลเดอร์ pages ซ่อนไว้ด้วย CSS จนกว่าจะมี class นี้)
+        document.documentElement.classList.add("auth-ok");
+
+        // ถ้าออกจากระบบจากแท็บอื่นหรือ session หมดอายุ ให้กลับหน้า login ทันที
+        window.meeFirebase?.auth?.onAuthStateChanged(current => {
+            if (!current && isLoggedIn && !IS_LOGIN_PAGE) {
+                isLoggedIn = false;
+                clearLocalData();
+                location.replace("../index.html");
+            }
+        });
+        return user;
+    }
+
+    isLoggedIn = false;
+    clearLocalData();
+    if (!IS_LOGIN_PAGE) location.replace("../index.html");
+    return null;
+});
 
 window.firebaseReady = startFirebase();
 
