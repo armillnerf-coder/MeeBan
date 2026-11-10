@@ -1,24 +1,42 @@
 document.addEventListener("DOMContentLoaded", () => {
     initShared();
 
-    if (isLoggedIn) {
-        location.href = "pages/dashboard.html";
-        return;
-    }
+    // ถ้าล็อกอินอยู่แล้วให้ข้ามไปหน้า dashboard
+    window.meeAuthGuard?.then(user => {
+        if (user) location.href = "pages/dashboard.html";
+    });
 
     const form = document.getElementById("loginForm");
-    form?.addEventListener("submit", event => {
-        event.preventDefault();
+    const errorBox = document.getElementById("loginError");
+    const submitButton = form?.querySelector("button[type='submit']");
 
-        const username = document.getElementById("loginUser")?.value.trim() || "";
+    const showLoginError = message => {
+        if (!errorBox) return;
+        errorBox.textContent = message;
+        errorBox.classList.remove("hidden");
+    };
+
+    form?.addEventListener("submit", async event => {
+        event.preventDefault();
+        errorBox?.classList.add("hidden");
+
+        const email = document.getElementById("loginUser")?.value.trim() || "";
         const password = document.getElementById("loginPass")?.value || "";
 
-        if (username === "admin" && password === "1234") {
-            localStorage.setItem(STORAGE_KEYS.auth, "true");
-            isLoggedIn = true;
+        if (!email || !password) {
+            showLoginError("กรุณากรอกอีเมลและรหัสผ่าน");
+            return;
+        }
+
+        if (submitButton) submitButton.disabled = true;
+
+        try {
+            await meeSignIn(email, password);
             location.href = "pages/dashboard.html";
-        } else {
-            showToast("ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง", "error");
+        } catch (error) {
+            console.error("[MEEBAN] Sign-in failed:", error?.code || error);
+            showLoginError(meeAuthErrorMessage(error));
+            if (submitButton) submitButton.disabled = false;
         }
     });
 });
