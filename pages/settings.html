@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ตั้งค่า</title>
+    <title>จัดการผู้เช่า</title>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -79,72 +79,26 @@
                 <button onclick="toggleSidebar()" class="lg:hidden p-2 hover:bg-gray-100 rounded-lg">
                     <i data-lucide="menu"></i>
                 </button>
-                <h1 id="pageTitle" data-base-title="ตั้งค่า" class="text-lg font-semibold text-primary flex-1">ตั้งค่า</h1>
+                <h1 id="pageTitle" data-base-title="จัดการผู้เช่า" class="text-lg font-semibold text-primary flex-1">จัดการผู้เช่า</h1>
                 <div id="currentDate" class="text-sm text-gray-500"></div>
             </header>
             <div class="flex-1 p-4 lg:p-6 overflow-auto">
                 
-<div class="space-y-6">
-    <div class="card max-w-2xl">
-        <h3 class="font-semibold mb-4">ข้อมูลหอพัก</h3>
-        <form id="dormInfoForm" class="space-y-3">
-            <div class="form-group">
-                <label for="settingDormName">ชื่อหอพัก</label>
-                <input type="text" id="settingDormName" required>
-            </div>
-            <div class="form-group">
-                <label for="settingDormAddress">ที่อยู่</label>
-                <textarea id="settingDormAddress" rows="3"></textarea>
-            </div>
-            <div class="form-group">
-                <label for="settingDormPhone">เบอร์โทรศัพท์</label>
-                <input type="text" id="settingDormPhone">
-            </div>
-            <div class="form-group">
-                <label for="settingDormLogo">โลโก้หอพัก</label>
-                <p class="text-sm text-gray-500 mb-2">ใช้รูปสี่เหลี่ยมจัตุรัสจะดูพอดีที่สุด (PNG, JPG หรือ WebP)</p>
-                <div class="flex items-center gap-3 flex-wrap">
-                    <img id="dormLogoPreview" class="dorm-logo-preview hidden" alt="ตัวอย่างโลโก้หอพัก">
-                    <div class="flex-1 min-w-[220px]">
-                        <input type="file" id="settingDormLogo" accept="image/png,image/jpeg,image/webp">
-                        <button type="button" id="removeDormLogo" class="text-sm text-red-600 mt-2 hidden">ลบโลโก้และใช้ไอคอนเดิม</button>
-                    </div>
-                </div>
-            </div>
-            <button type="submit" class="btn btn-success">บันทึกข้อมูลหอพัก</button>
-        </form>
-        <div id="dormInfoMsg" class="mt-3 text-green-600 text-sm hidden">บันทึกเรียบร้อยแล้ว</div>
-    </div>
+<div class="flex flex-wrap gap-3 mb-4">
+    <button onclick="showTenantForm()" class="bg-primary text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-opacity-90 text-sm">
+        <i data-lucide="plus"></i> เพิ่มผู้เช่า
+    </button>
+    <input type="text" id="tenantSearch" placeholder="ค้นหาผู้เช่า..." class="flex-1 min-w-[180px]">
+</div>
+<div id="tenantsList" class="space-y-3"></div>
 
-    <div class="card max-w-3xl">
-        <h3 class="font-semibold mb-4">ค่าเข้าห้องตามห้อง</h3>
-        <div id="moveInFeesContainer" class="space-y-3"></div>
-        <button onclick="saveMoveInFees()" class="btn btn-secondary mt-4">บันทึกค่าเข้าห้อง</button>
-        <div id="moveInFeesMsg" class="mt-3 hidden text-sm text-green-600">บันทึกเรียบร้อยแล้ว</div>
-    </div>
-
-    <div class="card max-w-2xl">
-        <h3 class="font-semibold mb-4">ตั้งค่าระบบ</h3>
-        <form id="settingsForm" class="space-y-4">
-            <div class="form-group">
-                <label for="settingElectricRate">ค่าไฟต่อหน่วย (บาท)</label>
-                <input type="number" id="settingElectricRate" min="0">
-            </div>
-            <div class="form-group">
-                <label for="settingWaterRate">ค่าน้ำ (บาท/เดือน)</label>
-                <input type="number" id="settingWaterRate" min="0">
-            </div>
-            <div class="form-group">
-                <label for="settingGarbageRate">ค่าขยะ (บาท/เดือน)</label>
-                <input type="number" id="settingGarbageRate" min="0">
-            </div>
-            <div class="form-group">
-                <label for="settingDueDay">วันครบกำหนดชำระ</label>
-                <input type="number" id="settingDueDay" min="1" max="31">
-            </div>
-            <button type="submit" class="btn btn-primary">บันทึกการตั้งค่า</button>
-        </form>
-        <div id="settingsMsg" class="hidden mt-3 text-green-600 text-sm">บันทึกเรียบร้อยแล้ว</div>
+<div id="tenantModal" class="modal hidden">
+    <div class="modal-content max-w-2xl">
+        <div class="modal-header">
+            <h2 id="tenantModalTitle" class="modal-title">ผู้เช่า</h2>
+            <button onclick="closeTenantModal()" class="p-2 hover:bg-gray-100 rounded-lg"><i data-lucide="x"></i></button>
+        </div>
+        <div id="tenantModalContent" class="modal-body"></div>
     </div>
 </div>
 
@@ -172,7 +126,7 @@
     <script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-auth-compat.js"></script>
     <script src="../js/firebase.js"></script>
 <script src="../js/main.js"></script>
-    <script src="../js/settings.js"></script>
+    <script src="../js/tenants.js"></script>
     <script>
         if (window.lucide?.createIcons) lucide.createIcons();
     </script>
