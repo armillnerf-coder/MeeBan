@@ -33,9 +33,10 @@
                 <i data-lucide="building-2" class="w-10 h-10 text-white"></i>
             </div>
             <h1 id="loginTitle" class="text-2xl font-bold text-primary">ระบบบริหารจัดการหอพัก</h1>
-            <p class="text-gray-500 mt-1">กรุณาเข้าสู่ระบบ</p>
+            <p id="loginSubtitle" class="text-gray-500 mt-1">กรุณาเข้าสู่ระบบ</p>
         </div>
 
+        <!-- เข้าสู่ระบบ -->
         <form id="loginForm" class="space-y-4">
             <div>
                 <label for="loginUser" class="block text-sm font-medium text-gray-700 mb-1">อีเมล</label>
@@ -49,7 +50,44 @@
                 เข้าสู่ระบบ
             </button>
             <p id="loginError" class="hidden text-sm text-center text-red-600" role="alert"></p>
+            <p class="text-sm text-center text-gray-500">
+                ยังไม่มีบัญชี?
+                <button type="button" id="showSignup" class="text-secondary font-semibold hover:underline">สมัครสมาชิก</button>
+            </p>
         </form>
+
+        <!-- สมัครสมาชิก -->
+        <form id="signupForm" class="space-y-4 hidden">
+            <div>
+                <label for="signupEmail" class="block text-sm font-medium text-gray-700 mb-1">อีเมล</label>
+                <input type="email" id="signupEmail" autocomplete="email" required>
+            </div>
+            <div>
+                <label for="signupPass" class="block text-sm font-medium text-gray-700 mb-1">รหัสผ่าน (อย่างน้อย 8 ตัวอักษร)</label>
+                <input type="password" id="signupPass" autocomplete="new-password" minlength="8" required>
+            </div>
+            <div>
+                <label for="signupPass2" class="block text-sm font-medium text-gray-700 mb-1">ยืนยันรหัสผ่าน</label>
+                <input type="password" id="signupPass2" autocomplete="new-password" minlength="8" required>
+            </div>
+            <button type="submit" class="w-full bg-primary text-white py-3 rounded-lg font-semibold hover:bg-opacity-90">
+                สมัครสมาชิก
+            </button>
+            <p id="signupError" class="hidden text-sm text-center text-red-600" role="alert"></p>
+            <p class="text-sm text-center text-gray-500">
+                มีบัญชีอยู่แล้ว?
+                <button type="button" id="showLogin" class="text-secondary font-semibold hover:underline">เข้าสู่ระบบ</button>
+            </p>
+        </form>
+
+        <!-- สถานะบัญชี (รออนุมัติ / ไม่อนุมัติ) -->
+        <div id="statusPanel" class="hidden text-center space-y-4">
+            <h2 id="statusTitle" class="text-lg font-semibold text-primary"></h2>
+            <p id="statusText" class="text-sm text-gray-600"></p>
+            <button type="button" id="statusLogout" class="w-full bg-primary text-white py-3 rounded-lg font-semibold hover:bg-opacity-90">
+                ออกจากระบบ
+            </button>
+        </div>
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-app-compat.js"></script>
