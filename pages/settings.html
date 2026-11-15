@@ -109,6 +109,13 @@
     <div id="loadingScreen" class="fixed inset-0 bg-white/80 backdrop-blur-sm hidden items-center justify-center z-[1000]">
         <div class="text-center">
             <div class="spinner mx-auto"></div>
+                <div id="userAdminCard" class="card max-w-3xl hidden">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="font-semibold">ผู้ใช้งานระบบ</h3>
+            <button type="button" onclick="loadUserAdmin()" class="btn btn-secondary">รีเฟรช</button>
+        </div>
+        <div id="userAdminList" class="space-y-3"></div>
+    </div>
             <p class="mt-4">กำลังประมวลผล...</p>
         </div>
     </div>
