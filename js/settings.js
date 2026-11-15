@@ -155,3 +155,112 @@ function saveMoveInFees() {
     setTimeout(() => msg?.classList.add("hidden"), 2000);
     showToast("บันทึกค่าเข้าห้องเรียบร้อย");
 }
+
+/* =========================================================
+   จัดการผู้ใช้งาน (เฉพาะ admin): อนุมัติ / ปฏิเสธ
+   ========================================================= */
+const USER_ROLE_LABELS = {
+    pending: "รออนุมัติ",
+    staff: "พนักงาน (อนุมัติแล้ว)",
+    admin: "เจ้าของ (admin)",
+    rejected: "ไม่อนุมัติ"
+};
+
+document.addEventListener("DOMContentLoaded", () => {
+    window.meeAuthGuard?.then(user => {
+        if (!user || window.meeProfile?.role !== "admin") return;
+
+        document.getElementById("userAdminCard")?.classList.remove("hidden");
+        loadUserAdmin();
+
+        document.getElementById("userAdminList")?.addEventListener("click", event => {
+            const button = event.target.closest("[data-user-action]");
+            if (!button) return;
+            setUserRole(button.dataset.uid, button.dataset.userAction, button.dataset.email);
+        });
+    });
+});
+
+async function loadUserAdmin() {
+    const list = document.getElementById("userAdminList");
+    if (!list) return;
+
+    list.innerHTML = `<div class="text-sm text-gray-500">กำลังโหลด...</div>`;
+
+    try {
+        const snapshot = await meeFirebase.db.collection("users").get();
+        const users = snapshot.docs.map(doc => ({ ...doc.data(), uid: doc.id }));
+        renderUserAdmin(users);
+    } catch (error) {
+        console.error("[MEEBAN] Load users failed:", error);
+        list.innerHTML = `<div class="empty-state">โหลดรายชื่อผู้ใช้ไม่สำเร็จ</div>`;
+    }
+}
+
+function renderUserAdmin(users) {
+    const list = document.getElementById("userAdminList");
+    if (!list) return;
+
+    if (!users.length) {
+        list.innerHTML = `<div class="empty-state">ยังไม่มีผู้ใช้งาน</div>`;
+        return;
+    }
+
+    const myUid = meeCurrentUser()?.uid;
+    const order = { pending: 0, staff: 1, rejected: 2, admin: 3 };
+
+    users.sort((a, b) =>
+        (order[a.role] ?? 9) - (order[b.role] ?? 9) ||
+        String(b.createdAt || "").localeCompare(String(a.createdAt || ""))
+    );
+
+    list.innerHTML = users.map(user => {
+        const role = user.role || "pending";
+        const canManage = user.uid !== myUid && role !== "admin";
+        const attrs = `data-uid="${escapeHtmlShared(user.uid)}" data-email="${escapeHtmlShared(user.email || "")}"`;
+
+        const buttons = !canManage ? "" : [
+            role !== "staff"
+                ? `<button type="button" class="btn btn-success" data-user-action="staff" ${attrs}>อนุมัติ</button>`
+                : "",
+            role === "pending"
+                ? `<button type="button" class="btn btn-secondary" data-user-action="rejected" ${attrs}>ปฏิเสธ</button>`
+                : "",
+            role === "staff"
+                ? `<button type="button" class="btn btn-secondary" data-user-action="pending" ${attrs}>ระงับสิทธิ์</button>`
+                : ""
+        ].join(" ");
+
+        return `
+            <div class="flex flex-wrap items-center gap-3 border rounded-xl p-3">
+                <div class="flex-1 min-w-[200px]">
+                    <div class="font-medium">${escapeHtmlShared(user.email || "(ไม่มีอีเมล)")}</div>
+                    <div class="text-sm text-gray-500">
+                        ${escapeHtmlShared(USER_ROLE_LABELS[role] || role)}
+                        · สมัครเมื่อ ${escapeHtmlShared(formatDate(user.createdAt))}
+                    </div>
+                </div>
+                <div class="flex gap-2">${buttons}</div>
+            </div>
+        `;
+    }).join("");
+}
+
+async function setUserRole(uid, role, email) {
+    if (!uid || !["staff", "pending", "rejected"].includes(role)) return;
+
+    if (role === "rejected" && !confirm(`ปฏิเสธบัญชี ${email || uid} ใช่หรือไม่?`)) return;
+    if (role === "pending" && !confirm(`ระงับสิทธิ์ของ ${email || uid} ใช่หรือไม่?`)) return;
+
+    try {
+        await meeFirebase.db.collection("users").doc(uid).update({
+            role,
+            updatedAt: new Date().toISOString()
+        });
+        showToast(role === "staff" ? "อนุมัติเรียบร้อย" : "อัปเดตสิทธิ์เรียบร้อย");
+        loadUserAdmin();
+    } catch (error) {
+        console.error("[MEEBAN] Update role failed:", error);
+        showToast("อัปเดตสิทธิ์ไม่สำเร็จ", "error");
+    }
+}
