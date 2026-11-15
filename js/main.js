@@ -838,34 +838,57 @@ function startFirebase() {
 }
 
 /* =========================================================
-   Auth guard (Firebase Authentication)
+   Auth guard (Firebase Authentication + บทบาทผู้ใช้)
    ========================================================= */
 const IS_LOGIN_PAGE = getCurrentPageFromPath() === "index";
+const APPROVED_ROLES = ["staff", "admin"];
 
-window.meeAuthGuard = (window.meeAuthReady || Promise.resolve(null)).then(user => {
-    if (user) {
-        isLoggedIn = true;
-        // เปิดให้เห็นหน้า (หน้าในโฟลเดอร์ pages ซ่อนไว้ด้วย CSS จนกว่าจะมี class นี้)
-        document.documentElement.classList.add("auth-ok");
+function isApprovedRole(role) {
+    return APPROVED_ROLES.includes(role);
+}
 
-        // ถ้าออกจากระบบจากแท็บอื่นหรือ session หมดอายุ ให้กลับหน้า login ทันที
-        window.meeFirebase?.auth?.onAuthStateChanged(current => {
-            if (!current && isLoggedIn && !IS_LOGIN_PAGE) {
-                isLoggedIn = false;
-                clearLocalData();
-                location.replace("../index.html");
-            }
-        });
-        return user;
+window.meeProfile = null;
+
+// คืนค่า user เฉพาะเมื่อล็อกอินแล้วและได้รับอนุมัติ (staff/admin) เท่านั้น
+window.meeAuthGuard = (window.meeAuthReady || Promise.resolve(null)).then(async user => {
+    if (!user) {
+        isLoggedIn = false;
+        clearLocalData();
+        if (!IS_LOGIN_PAGE) location.replace("../index.html");
+        return null;
     }
 
-    isLoggedIn = false;
-    clearLocalData();
-    if (!IS_LOGIN_PAGE) location.replace("../index.html");
-    return null;
-});
+    // อ่านโปรไฟล์ (ถ้ายังไม่มีจะสร้างเป็น pending) เพื่อดูว่าบัญชีนี้ได้รับอนุมัติหรือยัง
+    try {
+        window.meeProfile = await window.meeEnsureProfile(user);
+    } catch (error) {
+        console.error("[MEEBAN] Profile load failed:", error);
+        window.meeProfile = null;
+    }
 
-window.firebaseReady = startFirebase();
+    if (!isApprovedRole(window.meeProfile?.role)) {
+        // ล็อกอินแล้วแต่ยังรออนุมัติ / ถูกปฏิเสธ / อ่านสิทธิ์ไม่ได้
+        isLoggedIn = false;
+        clearLocalData();
+        if (!IS_LOGIN_PAGE) location.replace("../index.html");
+        return null;
+    }
+
+    isLoggedIn = true;
+    // เปิดให้เห็นหน้า (หน้าในโฟลเดอร์ pages ซ่อนไว้ด้วย CSS จนกว่าจะมี class นี้)
+    document.documentElement.classList.add("auth-ok");
+
+    // ถ้าออกจากระบบจากแท็บอื่นหรือ session หมดอายุ ให้กลับหน้า login ทันที
+    window.meeFirebase?.auth?.onAuthStateChanged(current => {
+        if (!current && isLoggedIn && !IS_LOGIN_PAGE) {
+            isLoggedIn = false;
+            clearLocalData();
+            location.replace("../index.html");
+        }
+    });
+
+    return user;
+});
 
 function initShared() {
     loadLocalData();
