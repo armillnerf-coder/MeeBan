@@ -85,6 +85,34 @@ window.meeSignIn = function (email, password) {
     return auth.signInWithEmailAndPassword(email, password);
 };
 
+// สมัครสมาชิก: สร้างบัญชีใน Firebase Auth แล้วสร้างโปรไฟล์ role = "pending"
+// (ยังเข้าข้อมูลหอพักไม่ได้จนกว่าเจ้าของจะอนุมัติ)
+window.meeSignUp = async function (email, password) {
+    const auth = window.meeFirebase?.auth;
+    if (!auth) throw (window.meeFirebase?.error || new Error("Firebase Auth ไม่พร้อมใช้งาน"));
+    const credential = await auth.createUserWithEmailAndPassword(email, password);
+    await window.meeEnsureProfile(credential.user);
+    return credential.user;
+};
+
+// อ่านโปรไฟล์ users/{uid} ถ้ายังไม่มีให้สร้างเป็น pending แล้วคืนค่าโปรไฟล์
+window.meeEnsureProfile = async function (user) {
+    const db = window.meeFirebase?.db;
+    if (!db || !user) return null;
+
+    const ref = db.collection("users").doc(user.uid);
+    const snapshot = await ref.get();
+    if (snapshot.exists) return snapshot.data();
+
+    const profile = {
+        email: user.email || "",
+        role: "pending",
+        createdAt: new Date().toISOString()
+    };
+    await ref.set(profile);
+    return profile;
+};
+
 window.meeSignOut = function () {
     const auth = window.meeFirebase?.auth;
     return auth ? auth.signOut() : Promise.resolve();
@@ -102,6 +130,12 @@ window.meeAuthErrorMessage = function (error) {
         case "auth/invalid-credential":
         case "auth/invalid-login-credentials":
             return "อีเมลหรือรหัสผ่านไม่ถูกต้อง";
+        case "auth/email-already-in-use":
+            return "อีเมลนี้ถูกใช้สมัครไปแล้ว";
+        case "auth/weak-password":
+            return "รหัสผ่านคาดเดาง่ายเกินไป กรุณาตั้งให้ยาวและซับซ้อนขึ้น";
+        case "auth/operation-not-allowed":
+            return "ยังไม่ได้เปิดการเข้าสู่ระบบด้วยอีเมล/รหัสผ่านใน Firebase";
         case "auth/too-many-requests":
             return "ลองผิดหลายครั้งเกินไป กรุณารอสักครู่แล้วลองใหม่";
         case "auth/network-request-failed":
